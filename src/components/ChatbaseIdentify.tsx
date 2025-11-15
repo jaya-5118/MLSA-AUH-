@@ -3,12 +3,17 @@
 
 import { useEffect } from "react";
 
+// Define type for chatbase if it exists on window
+interface WindowWithChatbase extends Window {
+  chatbase?: (action: string, payload: any) => void;
+}
+
 async function fetchToken() {
   const res = await fetch("/api/chatbase-identify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}), // server validates session; do not send untrusted userId
-    credentials: "include", // if you use cookies/sessions; optional
+    body: JSON.stringify({}),
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -27,11 +32,11 @@ export default function ChatbaseIdentify() {
       const timeoutMs = 10000;
       const intervalMs = 200;
       const started = Date.now();
+      const win = window as WindowWithChatbase;
 
       // wait until Chatbase embed appears on window
       while (mounted && Date.now() - started < timeoutMs) {
-        // @ts-ignore
-        if (typeof window !== "undefined" && (window as any).chatbase && typeof (window as any).chatbase === "function") {
+        if (win.chatbase && typeof win.chatbase === "function") {
           break;
         }
         await new Promise((r) => setTimeout(r, intervalMs));
@@ -41,8 +46,7 @@ export default function ChatbaseIdentify() {
       if (!token) return;
 
       try {
-        // @ts-ignore
-        (window as any).chatbase?.("identify", { token });
+        win.chatbase?.("identify", { token });
         console.log("Chatbase identify called");
       } catch (e) {
         console.error("chatbase identify failed", e);
